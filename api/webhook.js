@@ -45,8 +45,8 @@ export default async function handler(req, res) {
       tier_id: tierId,
       tier_name: tierName,
       status,
-      updated_at: new Date().toISOString(),
     });
+
 
     if (error) throw error;
 
@@ -56,3 +56,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "server error" });
   }
 }
+
