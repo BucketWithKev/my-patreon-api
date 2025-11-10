@@ -1,50 +1,58 @@
 // api/webhook.js
 import { createClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export const config = { api: { bodyParser: true } };
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).json({ error: "Only POST" });
+  if (req.method !== "POST") return res.status(405).end("Only POST");
 
   try {
     const event = req.body;
-    console.log("Full webhook body:", JSON.stringify(event, null, 2));
-
-    // Patreon sendet meist event.data — falls nicht vorhanden, nimm event selbst
-    const member = event.data || event;
-
-    // Memberdaten
+    const type = event.type; // e.g. members:create, members:update, members:delete
+    const member = event.data;
     const memberId = member.id;
+    const status = member.attributes?.patron_status || "unknown";
     const fullName = member.attributes?.full_name || "Unbekannt";
-    const status = member.attributes?.patron_status || member.attributes?.status || "unknown";
 
-    // Tier-Infos (kann leer sein, wenn kein aktiver Tier)
-    const tiers = member.relationships?.currently_entitled_tiers?.data || [];
-    const tierId = tiers[0]?.id || null;
-    const tierName = member.attributes?.currently_entitled_tiers?.[0]?.title || null;
+    // Hole alle Tier-IDs
+    const tierData = member.relationships?.currently_entitled_tiers?.data || [];
+    const tierId = tierData[0]?.id || null;
 
-    // 🧠 Upsert (insert or update)
+    // Hole den Tier-Namen aus "included"
+    let tierName = null;
+    if (event.included && tierId) {
+      const tierObj = event.included.find(
+        (x) => x.id === tierId && x.type === "tier"
+      );
+      tierName = tierObj?.attributes?.title || null;
+    }
+
+    // Lösche bei members:delete oder wenn kein aktives Tier
+    if (type === "members:delete" || !tierId || status === "former_patron") {
+      await supabase.from("patrons").delete().eq("id", memberId);
+      return res.status(200).json({ ok: true, action: "deleted" });
+    }
+
+    // Speichere oder aktualisiere Eintrag
     const { error } = await supabase.from("patrons").upsert({
       id: memberId,
       full_name: fullName,
       tier_id: tierId,
       tier_name: tierName,
       status,
+      updated_at: new Date().toISOString(),
     });
 
-    if (error) {
-      console.error("Supabase insert error:", error);
-      return res.status(500).json({ error: "db_failed" });
-    }
+    if (error) throw error;
 
-    console.log(`✅ Patreon member stored: ${fullName} (${memberId})`);
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, action: "saved" });
   } catch (err) {
     console.error("Webhook error:", err);
-    return res.status(500).json({ error: "failed" });
+    return res.status(500).json({ error: "server error" });
   }
 }
