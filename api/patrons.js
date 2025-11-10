@@ -12,9 +12,10 @@ export default async function handler(req, res) {
             .order("updated_at", { ascending: false });
 
         const names = data.map(d => d.full_name);
-        return res.status(200).json({ patrons: names });
+        return res.status(200).json({ patrons: data });
     } catch (err) {
         console.error(err);
         return res.status(500).json({ error: "failed" });
     }
 }
+
