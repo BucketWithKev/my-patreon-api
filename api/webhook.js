@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   try {
     const event = req.body;
-    const type = event.type || "unknown";
+    const type = event.type;
 
     console.log("📩 Patreon Event erhalten:", type);
 
@@ -35,3 +35,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server error", details: err.message });
   }
 }
+
