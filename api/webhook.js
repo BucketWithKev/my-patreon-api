@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const event = req.body;
     const type = event.type;
 
-    console.log("📩 Patreon Event erhalten:", type);
+    console.log(event, type);
 
     // --- Reaktion auf Event-Typ ---
     if (type === "members:create") {
@@ -35,4 +35,5 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server error", details: err.message });
   }
 }
+
 
