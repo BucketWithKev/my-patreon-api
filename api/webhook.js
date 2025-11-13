@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     const event = req.body;
     const type = event.type;
 
-    console.log(event, type);
+    console.log(req);
 
     // --- Reaktion auf Event-Typ ---
     if (type === "members:create") {
@@ -35,5 +35,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server error", details: err.message });
   }
 }
+
 
 
