@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     try {
         const { data } = await supabase
             .from("patrons")
-            .select("id, full_name, tier_id, status");
+            .select("id, full_name, tier_name, status");
 
         const names = data.map(d => d.full_name);
         return res.status(200).json({ patrons: data });
@@ -17,5 +17,6 @@ export default async function handler(req, res) {
         return res.status(500).json({ error: "failed" });
     }
 }
+
 
 
